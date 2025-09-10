@@ -147,6 +147,39 @@ type avassaContainer struct {
     Env                  map[string]string             `yaml:"env,omitempty"`
     Approle              string                        `yaml:"approle,omitempty"`
     OnMountedFileChange  *avassaOnMountedFileChange    `yaml:"on-mounted-file-change,omitempty"`
+    Probes               *avassaProbes                 `yaml:"probes,omitempty"`
+}
+
+type avassaProbes struct {
+    Liveness  *avassaProbeSpec `yaml:"liveness,omitempty"`
+    Readiness *avassaProbeSpec `yaml:"readiness,omitempty"`
+}
+
+type avassaProbeSpec struct {
+    HTTP             *avassaHTTPProbe `yaml:"http,omitempty"`
+    TCP              *avassaTCPProbe  `yaml:"tcp,omitempty"`
+    Exec             *avassaExecProbe `yaml:"exec,omitempty"`
+    InitialDelay     string           `yaml:"initial-delay,omitempty"`
+    Timeout          string           `yaml:"timeout,omitempty"`
+    Period           string           `yaml:"period,omitempty"`
+    SuccessThreshold int              `yaml:"success-threshold,omitempty"`
+    FailureThreshold int              `yaml:"failure-threshold,omitempty"`
+}
+
+type avassaHTTPProbe struct {
+    Scheme         string            `yaml:"scheme,omitempty"`
+    Host           string            `yaml:"host,omitempty"`
+    Path           string            `yaml:"path"`
+    Port           int               `yaml:"port"`
+    RequestHeaders map[string]string `yaml:"request-headers,omitempty"`
+}
+
+type avassaTCPProbe struct {
+    Port int `yaml:"port"`
+}
+
+type avassaExecProbe struct {
+    Cmd []string `yaml:"cmd"`
 }
 
 func buildAvassaApplication(metadata map[string]interface{}, workloadName string, containers map[string]scoretypes.Container) avassaApplication {
@@ -218,6 +251,18 @@ func buildAvassaApplication(metadata map[string]interface{}, workloadName string
         // Omit env if empty to reduce noise
         if len(ac.Env) == 0 {
             ac.Env = nil
+        }
+
+        // Probes (map Score -> Avassa). Prefer exec if both present.
+        var probes avassaProbes
+        if p := mapScoreProbeToAvassa(c.LivenessProbe); p != nil {
+            probes.Liveness = p
+        }
+        if p := mapScoreProbeToAvassa(c.ReadinessProbe); p != nil {
+            probes.Readiness = p
+        }
+        if probes.Liveness != nil || probes.Readiness != nil {
+            ac.Probes = &probes
         }
         svc.Containers = append(svc.Containers, ac)
     }
@@ -317,4 +362,44 @@ func firstNonEmpty(values ...string) string {
         }
     }
     return ""
+}
+
+// mapScoreProbeToAvassa converts a Score probe (HTTP or Exec) to an Avassa probe spec.
+// If both Exec and HTTP are present, Exec is preferred.
+func mapScoreProbeToAvassa(p *scoretypes.ContainerProbe) *avassaProbeSpec {
+    if p == nil { return nil }
+    out := &avassaProbeSpec{}
+    if p.Exec != nil && len(p.Exec.Command) > 0 {
+        out.Exec = &avassaExecProbe{Cmd: append([]string{}, p.Exec.Command...)}
+        return out
+    }
+    if p.HttpGet != nil {
+        http := &avassaHTTPProbe{Path: p.HttpGet.Path, Port: p.HttpGet.Port}
+        if p.HttpGet.Scheme != nil {
+            // Score scheme is enum HTTP|HTTPS; Avassa expects lowercase http|https
+            http.Scheme = strings.ToLower(string(*p.HttpGet.Scheme))
+        }
+        if p.HttpGet.Host != nil {
+            http.Host = *p.HttpGet.Host
+        }
+        if len(p.HttpGet.HttpHeaders) > 0 {
+            headers := make(map[string]string, len(p.HttpGet.HttpHeaders))
+            for _, h := range p.HttpGet.HttpHeaders {
+                name := strings.TrimSpace(h.Name)
+                val := strings.TrimSpace(h.Value)
+                if name == "" { continue }
+                if prev, ok := headers[name]; ok && prev != "" {
+                    headers[name] = prev + ", " + val
+                } else {
+                    headers[name] = val
+                }
+            }
+            if len(headers) > 0 {
+                http.RequestHeaders = headers
+            }
+        }
+        out.HTTP = http
+        return out
+    }
+    return nil
 }

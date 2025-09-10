@@ -15,10 +15,14 @@
 package command
 
 import (
+    "io"
     "log/slog"
+
     "github.com/spf13/cobra"
     "github.com/score-spec/score-implementation-avassa/internal/version"
 )
+
+var verbose bool
 
 var rootCmd = &cobra.Command{
     Use:           "score-implementation-avassa",
@@ -27,15 +31,20 @@ var rootCmd = &cobra.Command{
 		HiddenDefaultCmd: true,
 	},
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		slog.SetDefault(slog.New(slog.NewTextHandler(cmd.ErrOrStderr(), &slog.HandlerOptions{
-			Level: slog.LevelDebug, AddSource: true,
-		})))
+		var h slog.Handler
+		if verbose {
+			h = slog.NewTextHandler(cmd.ErrOrStderr(), &slog.HandlerOptions{Level: slog.LevelInfo})
+		} else {
+			h = slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelError})
+		}
+		slog.SetDefault(slog.New(h))
 		return nil
 	},
 }
 
 func init() {
 	rootCmd.Version = version.BuildVersionString()
+	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Enable verbose logging to stderr")
 }
 
 func Execute() error {

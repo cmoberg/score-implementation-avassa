@@ -50,13 +50,13 @@ func TestGenerateWithoutInit(t *testing.T) {
 }
 
 func TestGenerateWithoutScoreFiles(t *testing.T) {
-	_ = changeToTempDir(t)
-	stdout, _, err := executeAndResetCommand(context.Background(), rootCmd, []string{"init"})
-	assert.NoError(t, err)
-	assert.Equal(t, "", stdout)
-	stdout, _, err = executeAndResetCommand(context.Background(), rootCmd, []string{"generate"})
-	assert.EqualError(t, err, "project is empty, please add a score file")
-	assert.Equal(t, "", stdout)
+    _ = changeToTempDir(t)
+    stdout, _, err := executeAndResetCommand(context.Background(), rootCmd, []string{"init"})
+    assert.NoError(t, err)
+    assert.Equal(t, "", stdout)
+    stdout, _, err = executeAndResetCommand(context.Background(), rootCmd, []string{"generate"})
+    assert.EqualError(t, err, "project is empty, please add a score file")
+    assert.Equal(t, "", stdout)
 }
 
 func TestInitAndGenerateWithBadFile(t *testing.T) {
@@ -86,7 +86,7 @@ func TestInitAndGenerateWithBadScore(t *testing.T) {
 }
 
 func TestInitAndGenerate_with_sample(t *testing.T) {
-    td := changeToTempDir(t)
+    _ = changeToTempDir(t)
     stdout, _, err := executeAndResetCommand(context.Background(), rootCmd, []string{"init"})
     require.NoError(t, err)
     assert.Equal(t, "", stdout)
@@ -95,7 +95,7 @@ func TestInitAndGenerate_with_sample(t *testing.T) {
     })
     require.NoError(t, err)
     assert.Equal(t, "", stdout)
-    raw, err := os.ReadFile(filepath.Join(td, "manifests.yaml"))
+    raw, err := os.ReadFile("manifests.yaml")
     assert.NoError(t, err)
 
     var doc map[string]interface{}
@@ -137,7 +137,7 @@ func TestInitAndGenerate_with_sample(t *testing.T) {
     }
 
     // check that state was persisted
-    sd, ok, err := state.LoadStateDirectory(td)
+    sd, ok, err := state.LoadStateDirectory(".")
     assert.NoError(t, err)
     assert.True(t, ok)
 	assert.Equal(t, "score.yaml", *sd.State.Workloads["example"].File)
@@ -200,5 +200,65 @@ resources:
                 t.Fatalf("env missing or wrong type")
             }
         }
+    }
+}
+
+func TestGenerateRejectsDotImageFlag(t *testing.T) {
+    _ = changeToTempDir(t)
+    // init creates a sample score.yaml with a valid image
+    stdout, _, err := executeAndResetCommand(context.Background(), rootCmd, []string{"init"})
+    require.NoError(t, err)
+    assert.Equal(t, "", stdout)
+
+    // Using --image . should be rejected explicitly
+    _, _, err = executeAndResetCommand(context.Background(), rootCmd, []string{
+        "generate", "-o", "manifests.yaml", "--image", ".", "--", "score.yaml",
+    })
+    assert.EqualError(t, err, "invalid --image value: '.' is not a valid image name; please provide an explicit image name (e.g. 'repo/name:tag')")
+}
+
+func TestGenerateRequiresImageWhenDotInWorkload(t *testing.T) {
+    _ = changeToTempDir(t)
+    stdout, _, err := executeAndResetCommand(context.Background(), rootCmd, []string{"init"})
+    require.NoError(t, err)
+    assert.Equal(t, "", stdout)
+
+    // Replace score.yaml with a workload that uses image: .
+    _ = os.Remove("score.yaml")
+    require.NoError(t, os.WriteFile("score.yaml", []byte(`
+apiVersion: score.dev/v1b1
+metadata:
+  name: example
+containers:
+  main:
+    image: .
+`), 0644))
+
+    _, _, err = executeAndResetCommand(context.Background(), rootCmd, []string{
+        "generate", "-o", "manifests.yaml", "--", "score.yaml",
+    })
+    assert.EqualError(t, err, "container 'main' has image '.'; please provide an explicit image name via --image")
+}
+
+func TestGenerateStdoutFlag(t *testing.T) {
+    _ = changeToTempDir(t)
+    // init sample
+    stdout, _, err := executeAndResetCommand(context.Background(), rootCmd, []string{"init"})
+    require.NoError(t, err)
+    assert.Equal(t, "", stdout)
+
+    // generate to stdout
+    stdout, stderr, err := executeAndResetCommand(context.Background(), rootCmd, []string{
+        "generate", "--stdout", "--", "score.yaml",
+    })
+    require.NoError(t, err)
+    // Should emit YAML to stdout and no logs to stderr
+    assert.NotEqual(t, "", stdout)
+    assert.Contains(t, stdout, "---\n")
+    assert.Equal(t, "", stderr)
+
+    // And should not create manifests.yaml by default
+    if _, err := os.Stat("manifests.yaml"); err == nil {
+        t.Fatalf("manifests.yaml should not have been created when using --stdout")
     }
 }

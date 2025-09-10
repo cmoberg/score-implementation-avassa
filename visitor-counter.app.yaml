@@ -1,0 +1,45 @@
+name: visitor-counter
+version: "1.0"
+services:
+  - name: visitors
+    mode: replicated
+    replicas: 1
+    share-pid-namespace: false
+    variables:
+      - name: USERNAME
+        value-from-vault-secret:
+          vault: operations
+          secret: credentials
+          key: username
+    containers:
+      - name: visitors
+        image: registry.gitlab.com/avassa-public/movie-theaters-demo/visitor-counter:v1.0
+        container-log-size: 100 MB
+        container-log-archive: false
+        mounts: []
+        env:
+          USERNAME: ${USERNAME}
+        on-mounted-file-change:
+          restart: true
+        probes:
+          readiness:
+            exec:
+              cmd:
+                - sh
+                - -c
+                - exit $(cat /tmp/ready-code)
+            initial-delay: 0s
+            timeout: 1s
+            period: 10s
+            success-threshold: 2
+            failure-threshold: 1
+          liveness:
+            http:
+              scheme: http
+              port: 10000
+              path: /live
+            initial-delay: 0s
+            timeout: 1s
+            period: 10s
+            success-threshold: 1
+            failure-threshold: 1

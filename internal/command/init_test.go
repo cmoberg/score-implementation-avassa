@@ -36,15 +36,16 @@ func TestInitNominal(t *testing.T) {
 		require.NoError(t, os.Chdir(wd))
 	}()
 
-	stdout, stderr, err := executeAndResetCommand(context.Background(), rootCmd, []string{"init"})
-	assert.NoError(t, err)
-	assert.Equal(t, "", stdout)
-	assert.NotEqual(t, "", strings.TrimSpace(stderr))
+    stdout, stderr, err := executeAndResetCommand(context.Background(), rootCmd, []string{"init"})
+    assert.NoError(t, err)
+    assert.Equal(t, "", stdout)
+    // logging is disabled by default; stderr should be empty
+    assert.Equal(t, "", strings.TrimSpace(stderr))
 
-	stdout, stderr, err = executeAndResetCommand(context.Background(), rootCmd, []string{"generate", "score.yaml"})
-	assert.NoError(t, err)
-	assert.Equal(t, ``, stdout)
-	assert.NotEqual(t, "", strings.TrimSpace(stderr))
+    stdout, stderr, err = executeAndResetCommand(context.Background(), rootCmd, []string{"generate", "score.yaml"})
+    assert.NoError(t, err)
+    assert.Equal(t, ``, stdout)
+    assert.Equal(t, "", strings.TrimSpace(stderr))
 
 	sd, ok, err := state.LoadStateDirectory(".")
 	assert.NoError(t, err)
@@ -66,16 +67,16 @@ func TestInitNominal_run_twice(t *testing.T) {
 	}()
 
 	// first init
-	stdout, stderr, err := executeAndResetCommand(context.Background(), rootCmd, []string{"init", "--file", "score2.yaml"})
-	assert.NoError(t, err)
-	assert.Equal(t, "", stdout)
-	assert.NotEqual(t, "", strings.TrimSpace(stderr))
+    stdout, stderr, err := executeAndResetCommand(context.Background(), rootCmd, []string{"init", "--file", "score2.yaml"})
+    assert.NoError(t, err)
+    assert.Equal(t, "", stdout)
+    assert.Equal(t, "", strings.TrimSpace(stderr))
 
 	// init again
-	stdout, stderr, err = executeAndResetCommand(context.Background(), rootCmd, []string{"init"})
-	assert.NoError(t, err)
-	assert.Equal(t, "", stdout)
-	assert.NotEqual(t, "", strings.TrimSpace(stderr))
+    stdout, stderr, err = executeAndResetCommand(context.Background(), rootCmd, []string{"init"})
+    assert.NoError(t, err)
+    assert.Equal(t, "", stdout)
+    assert.Equal(t, "", strings.TrimSpace(stderr))
 
 	_, err = os.Stat("score.yaml")
 	assert.NoError(t, err)

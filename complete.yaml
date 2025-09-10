@@ -1,0 +1,46 @@
+apiVersion: score.dev/v1b1
+metadata:
+    name: example
+containers:
+  container-name:
+    image: acontainer
+    # command: # optional
+    #   - ls
+    # args: # optional
+    #   - -a
+    variables: # optional
+      VAR_NAME: avar
+    # files: # optional
+    #   target:
+    #     mode: 0600
+    #     source: apa.txt # oneOf source or content is required
+    # volumes: # optional
+    #   target:
+    #     source: string
+    #     path: string # optional
+    #     readOnly: boolean # optional
+    # resources: # optional
+    #   limits: # optional
+    #     memory: string
+    #     cpu: string
+    #   requests: # optional
+    #     memory: string
+    #     cpu: string
+    livenessProbe: # optional
+      httpGet:
+        scheme: HTTP # optional
+        host: 127.0.0.1 # optional
+        path: /healthz
+        port: 8080
+        httpHeaders: # optional
+          - name: x-custom-header
+            value: Awesome
+    readinessProbe:
+      httpGet:
+        scheme: HTTPS # optional
+        host: localhost # optional
+        path: /ready
+        port: 8080
+        httpHeaders: # optional
+          - name: x-custom-header
+            value: Awesome
