@@ -86,9 +86,9 @@ var initCmd = &cobra.Command{
 				},
 			}
 			rawScore, _ := yaml.Marshal(workload)
-			if err := os.WriteFile(initCmdScoreFile, rawScore, 0755); err != nil {
-				return fmt.Errorf("failed to write Score file: %w", err)
-			}
+            if err := os.WriteFile(initCmdScoreFile, rawScore, 0644); err != nil {
+                return fmt.Errorf("failed to write Score file: %w", err)
+            }
 			slog.Info("Created initial Score file", "file", initCmdScoreFile)
 		} else {
 			slog.Info("Skipping creation of initial Score file since it already exists", "file", initCmdScoreFile)

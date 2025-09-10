@@ -170,13 +170,19 @@ var generateCmd = &cobra.Command{
 
 		out := new(bytes.Buffer)
         for _, manifest := range outputManifests {
-            out.WriteString("---\n")
-            _ = encodeManifestWithNameFirst(out, manifest)
+            if _, err := io.WriteString(out, "---\n"); err != nil {
+                return fmt.Errorf("failed to write document separator: %w", err)
+            }
+            if err := encodeManifestWithNameFirst(out, manifest); err != nil {
+                return fmt.Errorf("failed to encode manifest: %w", err)
+            }
         }
         v, _ := cmd.Flags().GetString(generateCmdOutputFlag)
         toStdout, _ := cmd.Flags().GetBool(generateCmdStdoutFlag)
         if toStdout || v == "-" {
-            _, _ = fmt.Fprint(cmd.OutOrStdout(), out.String())
+            if _, err := fmt.Fprint(cmd.OutOrStdout(), out.String()); err != nil {
+                return fmt.Errorf("failed to write manifests to stdout: %w", err)
+            }
         } else if v == "" {
             return fmt.Errorf("no output file specified")
         } else if err := os.WriteFile(v+".tmp", out.Bytes(), 0644); err != nil {

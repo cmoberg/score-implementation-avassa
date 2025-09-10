@@ -62,7 +62,9 @@ func Workload(currentState *state.State, workloadName string) (map[string]interf
         return nil, fmt.Errorf("workload: %s: failed to serialise avassa manifest: %w", workloadName, err)
     }
     var out map[string]interface{}
-    _ = yaml.Unmarshal(raw, &out)
+    if err := yaml.Unmarshal(raw, &out); err != nil {
+        return nil, fmt.Errorf("workload: %s: failed to deserialise avassa manifest: %w", workloadName, err)
+    }
     return out, nil
 }
 
