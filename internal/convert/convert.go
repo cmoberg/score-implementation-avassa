@@ -118,6 +118,7 @@ func convertContainerFiles(input map[string]scoretypes.ContainerFile, scoreFile 
 
 type avassaApplication struct {
     Name                      string            `yaml:"name"`
+    Version                   string            `yaml:"version,omitempty"`
     Services                  []avassaService   `yaml:"services"`
     OnMutableVariableChange   string            `yaml:"on-mutable-variable-change,omitempty"`
     Labels                    map[string]any    `yaml:"labels,omitempty"`
@@ -212,6 +213,9 @@ func buildAvassaApplication(metadata map[string]interface{}, workloadName string
     }
     if v := asString(annotations["avassa.network"]); v != "" {
         app.Network = &avassaNetwork{SharedApplicationNetwork: v}
+    }
+    if v := asString(annotations["avassa.io/version"]); strings.TrimSpace(v) != "" {
+        app.Version = strings.TrimSpace(v)
     }
 
     // Service
