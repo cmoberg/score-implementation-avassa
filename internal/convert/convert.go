@@ -51,7 +51,10 @@ func Workload(currentState *state.State, workloadName string) (map[string]interf
     }
 
     // Build Avassa Application spec (subset)
-    app := buildAvassaApplication(spec.Metadata, workloadName, containers)
+    app, err := buildAvassaApplication(spec.Metadata, workloadName, containers, sf)
+    if err != nil {
+        return nil, err
+    }
 
     // Marshal to YAML then back to map[string]interface{} for downstream pipeline
     raw, err := yaml.Marshal(app)
@@ -144,6 +147,7 @@ type avassaContainer struct {
     ContainerLogArchive  bool                          `yaml:"container-log-archive,omitempty"`
     ShutdownTimeout      string                        `yaml:"shutdown-timeout,omitempty"`
     Image                string                        `yaml:"image"`
+    Cmd                  []string                      `yaml:"cmd,omitempty"`
     Env                  map[string]string             `yaml:"env,omitempty"`
     Approle              string                        `yaml:"approle,omitempty"`
     OnMountedFileChange  *avassaOnMountedFileChange    `yaml:"on-mounted-file-change,omitempty"`
@@ -182,7 +186,7 @@ type avassaExecProbe struct {
     Cmd []string `yaml:"cmd"`
 }
 
-func buildAvassaApplication(metadata map[string]interface{}, workloadName string, containers map[string]scoretypes.Container) avassaApplication {
+func buildAvassaApplication(metadata map[string]interface{}, workloadName string, containers map[string]scoretypes.Container, sf func(string) (string, error)) (avassaApplication, error) {
     // Name
     appName := sanitizeName(asString(metadata["name"]))
     if appName == "" {
@@ -244,6 +248,30 @@ func buildAvassaApplication(metadata map[string]interface{}, workloadName string
             Env:                 env,
             OnMountedFileChange: onMnt,
         }
+        // Map Score command/args -> Avassa cmd
+        if n := len(c.Command) + len(c.Args); n > 0 {
+            combined := make([]string, 0, n)
+            combined = append(combined, c.Command...)
+            combined = append(combined, c.Args...)
+            cmdOut := make([]string, 0, len(combined))
+            for _, part := range combined {
+                p := strings.TrimSpace(part)
+                if p == "" { continue }
+                if sf != nil {
+                    if subst, err := framework.SubstituteString(p, sf); err == nil {
+                        p = subst
+                    } else {
+                        return avassaApplication{}, fmt.Errorf("workload: %s: container: %s: cmd: %w", workloadName, cname, err)
+                    }
+                }
+                if t := strings.TrimSpace(p); t != "" {
+                    cmdOut = append(cmdOut, t)
+                }
+            }
+            if len(cmdOut) > 0 {
+                ac.Cmd = cmdOut
+            }
+        }
         if v := asString(annotations["avassa.approle"]); v != "" {
             ac.Approle = v
         }
@@ -267,7 +295,7 @@ func buildAvassaApplication(metadata map[string]interface{}, workloadName string
         svc.Containers = append(svc.Containers, ac)
     }
     app.Services = []avassaService{svc}
-    return app
+    return app, nil
 }
 
 var validNameRe = regexp.MustCompile(`^[a-z0-9]([a-z0-9\-]*[a-z0-9])?$`)

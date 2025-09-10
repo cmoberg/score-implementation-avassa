@@ -1,13 +1,15 @@
 apiVersion: score.dev/v1b1
 metadata:
     name: example
+    annotations:
+      avassa.io/version: "1.0"
 containers:
   container-name:
     image: acontainer
-    # command: # optional
-    #   - ls
-    # args: # optional
-    #   - -a
+    command: # optional
+      - ls
+    args: # optional
+      - -a
     variables: # optional
       VAR_NAME: avar
     # files: # optional
