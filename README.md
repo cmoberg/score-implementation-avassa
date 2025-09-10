@@ -1,87 +1,143 @@
-# `score-implementation-sample`
+# score-implementation-avassa
 
-This `score-implementation-sample` is a template repo for creating a new Score implementation following the conventions laid out in [Score Compose](https://github.com/score-spec/score-compose) and [Score K8s](https://github.com/score-spec/score-k8s).
+Score → Avassa converter CLI. It reads one or more Score workload files and emits Avassa Application manifests, with placeholder expansion, simple resource priming, and useful conversion defaults.
 
-This sample comes complete with:
+## Features
 
-1. CLI skeleton including `init` and`generate` subcommands
-    - `generate --overrides-file` and `generate --override-property` for applying Score overrides before conversion
-    - `generate --image` for overriding the workload image before conversion.
-    - Full placeholder support for `${metadata...}` and `${resource...}` expressions in the workload variables, files, and resource params.
-2. State directory storage in `.score-implementation-sample/`
-3. `TODO` in place of resource provisioning and workload conversion
+1. `init` and `generate` subcommands.
+    - `generate --overrides-file` and `generate --override-property` to apply Score overrides before conversion.
+    - `generate --image` to supply an image when a container declares `image: "."` in Score.
+    - Placeholder support for `${metadata...}` and `${resource...}` in variables, files, and resource params.
+2. Local state stored in `.score-implementation-avassa/`.
+3. Emits Avassa Application specs (services/containers) from Score workloads.
 
-To adapt this for your target platform, you should:
+## Install and Build
 
-1. Fork the repo or use the "use as template" button in Github (this flattens the commit history)
-    ![use-as-template](use-template-screenshot.png)
-2. Rename the go module by replacing all instances of `github.com/score-spec/score-implementation-sample` with your own module name.
-3. Replace all other instances of `score-implementation-sample` with your own `score-xyz` name including renaming the `cmd/score-implementation-sample` directory.
-4. Run the tests with `go test -v ./...`.
-5. Change the `TODO` in [provisioning.go](./internal/provisioners/provisioning.go) to provision resources and set the resource outputs. The existing implementation resolves placeholders in the resource params but does not set any resource outputs.
-6. Change the `TODO` in [convert.go](./internal/convert/convert.go) to convert workloads into the target manifest form. The existing implementation resolves placeholders in the variables and files sections but just returns the workload spec as yaml content in the manifests.
+- Build the CLI: `make build` (binary at `./score-implementation-avassa`).
+- Print version: `go run ./cmd/score-implementation-avassa --version`.
+- Test locally: `make test`.
+- Optional container image: `make build-container` then `make test-container`.
 
-Good luck, and have fun!
+## Usage
 
-## Demo
+Common flows:
 
-Write the following to `score.yaml`:
-
-```yaml
-apiVersion: score.dev/v1b1
-metadata:
-    name: example
-containers:
-    main:
-        image: stefanprodan/podinfo
-        variables:
-            key: value
-            dynamic: ${metadata.name}
-        files:
-        - target: /somefile
-          content: |
-            ${metadata.name}
-resources:
-    thing:
-        type: something
-        params:
-          x: ${metadata.name}
-```
-
-And run:
+1) Initialize a project (creates `.score-implementation-avassa/` and a starter `score.yaml` if missing):
 
 ```sh
-go run ./cmd/score-xyz init
-go run ./cmd/score-xyz generate score.yaml
+./score-implementation-avassa init
+# or: go run ./cmd/score-implementation-avassa init
 ```
 
-The output `manifests.yaml` contains the following which indicates:
+2) Generate Avassa manifests from a Score file:
 
-1. Resources were "provisioned" and their parameters interpolated.
-2. Workloads were converted by copying them to the output manifests with variables or files interpolated as required.
+```sh
+./score-implementation-avassa generate -o manifests.yaml -- score.yaml
+# Use '-' to write to stdout instead of a file:
+./score-implementation-avassa generate -o - -- score.yaml
+```
+
+3) Multiple workloads (combined into a single output with `---` separators):
+
+```sh
+./score-implementation-avassa generate -o manifests.yaml -- app1.yaml app2.yaml app3.yaml
+```
+
+4) Apply overrides to a single Score file:
+
+```sh
+# Merge an overrides file
+./score-implementation-avassa generate -o manifests.yaml --overrides-file overrides.yaml -- score.yaml
+
+# Set or remove specific properties (repeatable)
+./score-implementation-avassa generate -o manifests.yaml \
+  --override-property metadata.labels.tier=prod \
+  --override-property containers.main.image="stefanprodan/podinfo:latest" \
+  --override-property service.ports.web.port=8080 \
+  -- score.yaml
+
+# Remove a field (empty value clears it)
+./score-implementation-avassa generate -o manifests.yaml \
+  --override-property metadata.annotations.avassa.approle= \
+  -- score.yaml
+```
+
+5) Supply an image for containers that use `image: "."` in Score:
+
+```sh
+./score-implementation-avassa generate -o manifests.yaml --image my-registry/my-image:tag -- score.yaml
+```
+
+Notes:
+- Run `init` once per workspace to create the state directory.
+- When passing more than one Score file, override flags (`--overrides-file`, `--override-property`, `--image`) are not allowed.
+- Use `--` before file paths to avoid ambiguity with flags.
+
+## Avassa Mapping
+
+- Containers: Score container variables become Avassa `env`; content/files are resolved and inlined with expansion by default.
+- Application defaults (can be overridden via `metadata.annotations` on the Score workload):
+  - `avassa.on-mutable-variable-change` (default: `restart-service-instance`).
+  - `avassa.network` (sets `shared-application-network`).
+  - `avassa.replicas` (default: `1`).
+  - `avassa.share-pid-namespace` (default: `false`).
+  - `avassa.log-size` (default: `100 MB`).
+  - `avassa.log-archive` (default: `false`).
+  - `avassa.shutdown-timeout` (default: `10s`).
+  - `avassa.approle` (optional).
+  - `avassa.on-mounted-file-change-restart` (if `true`, sets `on-mounted-file-change: { restart: true }`).
+
+## Quick Start Example
+
+Create `score.yaml`:
 
 ```yaml
 apiVersion: score.dev/v1b1
 metadata:
-    name: example
+  name: example
+  annotations:
+    avassa.log-size: 100 MB
 containers:
-    main:
-        files:
-            - content: |
-                example
-              noExpand: true
-              target: /somefile
-        image: stefanprodan/podinfo
-        variables:
-            dynamic: example
-            key: value
-resources:
-    thing:
-        params:
-            x: example
-        type: something
+  main:
+    image: stefanprodan/podinfo
+    variables:
+      DYNAMIC: ${metadata.name}
 ```
 
-## A note on licensing
+Run conversion:
 
-Most code files here retain the Apache licence header since they were copied or adapted from the reference `score-compose` which is Apache licensed. Any modifications to these files should retain the Apache licence and attribution.
+```sh
+./score-implementation-avassa init
+./score-implementation-avassa generate -o manifests.yaml -- score.yaml
+```
+
+Example output (excerpt):
+
+```yaml
+---
+name: example
+services:
+  - name: example-service
+    mode: replicated
+    replicas: 1
+    share-pid-namespace: false
+    containers:
+      - name: main
+        image: stefanprodan/podinfo
+        container-log-size: 100 MB
+        shutdown-timeout: 10s
+        mounts: []
+        env:
+          DYNAMIC: example
+on-mutable-variable-change: restart-service-instance
+```
+
+## Development
+
+- Build: `make build`
+- Test: `make test`
+- Container: `make build-container` and `make test-container`
+
+## Licensing
+
+Code in this repository includes Apache 2.0 license headers and portions adapted from `score-compose` (Apache 2.0). Retain the Apache license and attribution in modified files.
