@@ -1,4 +1,4 @@
-module github.com/score-spec/score-implementation-sample
+module github.com/score-spec/score-implementation-avassa
 
 go 1.25.1
 

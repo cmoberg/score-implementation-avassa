@@ -15,10 +15,10 @@
 package main
 
 import (
-	"fmt"
-	"os"
+    "fmt"
+    "os"
 
-	"github.com/score-spec/score-implementation-sample/internal/command"
+    "github.com/score-spec/score-implementation-avassa/internal/command"
 )
 
 func main() {

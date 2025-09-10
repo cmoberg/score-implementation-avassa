@@ -15,17 +15,17 @@
 package command
 
 import (
-	"errors"
-	"fmt"
-	"log/slog"
-	"os"
+    "errors"
+    "fmt"
+    "log/slog"
+    "os"
 
-	"github.com/score-spec/score-go/framework"
-	scoretypes "github.com/score-spec/score-go/types"
-	"github.com/spf13/cobra"
-	"gopkg.in/yaml.v3"
+    "github.com/score-spec/score-go/framework"
+    scoretypes "github.com/score-spec/score-go/types"
+    "github.com/spf13/cobra"
+    "gopkg.in/yaml.v3"
 
-	"github.com/score-spec/score-implementation-sample/internal/state"
+    "github.com/score-spec/score-implementation-avassa/internal/state"
 )
 
 const (

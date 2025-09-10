@@ -15,13 +15,13 @@
 package command
 
 import (
-	"bytes"
-	"context"
-	"testing"
+    "bytes"
+    "context"
+    "testing"
 
-	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
-	"github.com/stretchr/testify/assert"
+    "github.com/spf13/cobra"
+    "github.com/spf13/pflag"
+    "github.com/stretchr/testify/assert"
 )
 
 // executeAndResetCommand is a test helper that runs and then resets a command for executing in another test.
@@ -61,8 +61,8 @@ func executeAndResetCommand(ctx context.Context, cmd *cobra.Command, args []stri
 }
 
 func TestRootUnknown(t *testing.T) {
-	stdout, stderr, err := executeAndResetCommand(context.Background(), rootCmd, []string{"unknown"})
-	assert.EqualError(t, err, "unknown command \"unknown\" for \"score-implementation-sample\"")
+    stdout, stderr, err := executeAndResetCommand(context.Background(), rootCmd, []string{"unknown"})
+    assert.EqualError(t, err, "unknown command \"unknown\" for \"score-implementation-avassa\"")
 	assert.Equal(t, "", stdout)
 	assert.Equal(t, "", stderr)
 }

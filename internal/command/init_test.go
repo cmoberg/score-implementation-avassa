@@ -15,16 +15,16 @@
 package command
 
 import (
-	"context"
-	"os"
-	"strings"
-	"testing"
+    "context"
+    "os"
+    "strings"
+    "testing"
 
-	"github.com/score-spec/score-go/framework"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+    "github.com/score-spec/score-go/framework"
+    "github.com/stretchr/testify/assert"
+    "github.com/stretchr/testify/require"
 
-	"github.com/score-spec/score-implementation-sample/internal/state"
+    "github.com/score-spec/score-implementation-avassa/internal/state"
 )
 
 func TestInitNominal(t *testing.T) {

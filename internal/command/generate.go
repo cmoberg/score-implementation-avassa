@@ -15,24 +15,24 @@
 package command
 
 import (
-	"bytes"
-	"fmt"
-	"log/slog"
-	"os"
-	"slices"
-	"strings"
+    "bytes"
+    "fmt"
+    "log/slog"
+    "os"
+    "slices"
+    "strings"
 
-	"dario.cat/mergo"
-	"github.com/score-spec/score-go/framework"
-	scoreloader "github.com/score-spec/score-go/loader"
-	scoreschema "github.com/score-spec/score-go/schema"
-	scoretypes "github.com/score-spec/score-go/types"
-	"github.com/spf13/cobra"
-	"gopkg.in/yaml.v3"
+    "dario.cat/mergo"
+    "github.com/score-spec/score-go/framework"
+    scoreloader "github.com/score-spec/score-go/loader"
+    scoreschema "github.com/score-spec/score-go/schema"
+    scoretypes "github.com/score-spec/score-go/types"
+    "github.com/spf13/cobra"
+    "gopkg.in/yaml.v3"
 
-	"github.com/score-spec/score-implementation-sample/internal/convert"
-	"github.com/score-spec/score-implementation-sample/internal/provisioners"
-	"github.com/score-spec/score-implementation-sample/internal/state"
+    "github.com/score-spec/score-implementation-avassa/internal/convert"
+    "github.com/score-spec/score-implementation-avassa/internal/provisioners"
+    "github.com/score-spec/score-implementation-avassa/internal/state"
 )
 
 const (

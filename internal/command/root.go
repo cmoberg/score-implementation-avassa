@@ -15,13 +15,13 @@
 package command
 
 import (
-	"log/slog"
-	"github.com/spf13/cobra"
-	"github.com/score-spec/score-implementation-sample/internal/version"
+    "log/slog"
+    "github.com/spf13/cobra"
+    "github.com/score-spec/score-implementation-avassa/internal/version"
 )
 
 var rootCmd = &cobra.Command{
-	Use:           "score-implementation-sample",
+    Use:           "score-implementation-avassa",
 	SilenceErrors: true,
 	CompletionOptions: cobra.CompletionOptions{
 		HiddenDefaultCmd: true,

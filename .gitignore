@@ -1,5 +1,4 @@
-.score-implementation-sample/
+.score-implementation-avassa/
 score.yaml
 .idea/
-manifests.yaml
-/score-implementation-sample
+/score-implementation-avassa

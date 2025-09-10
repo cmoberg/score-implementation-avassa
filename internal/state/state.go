@@ -26,8 +26,8 @@ import (
 )
 
 const (
-	DefaultRelativeStateDirectory = ".score-implementation-sample"
-	FileName                      = "state.yaml"
+    DefaultRelativeStateDirectory = ".score-implementation-avassa"
+    FileName                      = "state.yaml"
 )
 
 type WorkloadExtras struct{}

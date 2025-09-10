@@ -1,0 +1,23 @@
+name: robot-driver
+services:
+  - name: robot-driver-service
+    mode: replicated
+    replicas: 1
+    share-pid-namespace: false
+    containers:
+      - name: robot-driver
+        mounts: []
+        container-log-size: 100 MB
+        container-log-archive: false
+        shutdown-timeout: 10s
+        image: robot-driver
+        env:
+          LON: "18.046810455243392"
+          LOG_LEVEL: DEBUG
+          LAT: "59.336762950269154"
+          APPROLE_SECRET_ID: ${SYS_APPROLE_SECRET_ID}
+          API_CA_CERT: ${SYS_API_CA_CERT}
+        approle: location-update
+        on-mounted-file-change:
+          restart: true
+on-mutable-variable-change: restart-service-instance

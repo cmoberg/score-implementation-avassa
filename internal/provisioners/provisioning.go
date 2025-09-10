@@ -15,12 +15,12 @@
 package provisioners
 
 import (
-	"fmt"
-	"maps"
+    "fmt"
+    "maps"
 
-	"github.com/score-spec/score-go/framework"
+    "github.com/score-spec/score-go/framework"
 
-	"github.com/score-spec/score-implementation-sample/internal/state"
+    "github.com/score-spec/score-implementation-avassa/internal/state"
 )
 
 func ProvisionResources(currentState *state.State) (*state.State, error) {

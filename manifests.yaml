@@ -1,0 +1,19 @@
+---
+name: example
+on-mutable-variable-change: restart-service-instance
+services:
+    - containers:
+        - container-log-size: 100 MB
+          image: stefanprodan/podinfo
+          mounts: []
+          name: main
+          shutdown-timeout: 10s
+        - container-log-size: 100 MB
+          image: stefanprodan/podinfo2
+          mounts: []
+          name: second
+          shutdown-timeout: 10s
+      mode: replicated
+      name: example-service
+      replicas: 1
+      share-pid-namespace: false
